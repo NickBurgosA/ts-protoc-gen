@@ -174,10 +174,22 @@ function printServiceStub(methodPrinter: Printer, service: RPCDescriptor) {
       printServerStreamStubMethod(printer, method);
     } else {
       printUnaryStubMethod(printer, method);
+      printUnaryStubMethodAsync(printer, method);
     }
     printer.printEmptyLn();
   });
   printer.printLn(`exports.${service.name}Client = ${service.name}Client;`);
+}
+function printUnaryStubMethodAsync(printer: CodePrinter, method: RPCMethodDescriptor) {
+    printer
+        .printLn(`${method.serviceName}Client.prototype.${method.nameAsCamelCase}Async = function ${method.functionName}(requestMessage) {`)
+        .indent().printLn(`return new Promise((resolve, reject) => {`)
+        .indent().printLn(`this.${method.nameAsCamelCase}(requestMessage, (err, response) => {`)
+        .indent().printLn("if(err) reject(err);")
+        .printLn("else if (response) resolve(response);")
+        .dedent().printLn(`});`)
+        .dedent().printLn(`});`)
+        .dedent().printLn(`}`);
 }
 
 function printUnaryStubMethod(printer: CodePrinter, method: RPCMethodDescriptor) {
@@ -368,6 +380,7 @@ function printServiceStubTypes(methodPrinter: Printer, service: RPCDescriptor) {
       printUnaryStubMethodTypes(printer, method);
     }
   });
+
   printer.dedent().printLn("}");
 }
 
@@ -381,7 +394,9 @@ function printUnaryStubMethodTypes(printer: CodePrinter, method: RPCMethodDescri
              .printLn(`${method.nameAsCamelCase}(`)
       .indent().printLn(`requestMessage: ${method.requestType},`)
                .printLn(`callback: (error: ServiceError|null, responseMessage: ${method.responseType}|null) => void`)
-    .dedent().printLn(`): UnaryResponse;`);
+    .dedent().printLn(`): UnaryResponse;`)
+                .printLn(`${method.nameAsCamelCase}Async(`)
+      .indent().printLn(`requestMessage: ${method.requestType}): Promise<${method.responseType}>;`);
 }
 
 function printServerStreamStubMethodTypes(printer: CodePrinter, method: RPCMethodDescriptor) {
